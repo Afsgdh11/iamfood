@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Admin - Toko Overnight Oat</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .hidden { display: none; }
+        .btn { padding: 5px 10px; cursor: pointer; }
+        .hapus { background-color: #dc3545; color: white; }
+        .simpan { background-color: #28a745; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #eee; }
+        img { max-width: 100px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<!-- 🔐 FORM LOGIN -->
+<div id="login-section">
+    <h2>🔐 Login Admin</h2>
+    <label>Password:</label><br>
+    <input type="password" id="password"><br><br>
+    <button class="btn simpan" onclick="login()">Login</button>
+    <p id="login-error" style="color:red;"></p>
+</div>
+
+<!-- 🛠 HALAMAN ADMIN -->
+<div id="admin-section" class="hidden">
+    <h1>🛠 Admin Produk Overnight Oat</h1>
+
+    <h2>Tambah Produk</h2>
+    <form id="form-produk">
+        <label>Nama Produk:</label><br>
+        <input type="text" id="nama" required><br><br>
+
+        <label>Harga Produk:</label><br>
+        <input type="number" id="harga" required><br><br>
+
+        <label>Gambar Produk (upload):</label><br>
+        <input type="file" id="gambar" accept="image/*" required><br><br>
+
+        <button type="submit" class="btn simpan">Tambah Produk</button>
+    </form>
+
+    <h2>Daftar Produk</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Harga</th>
+                <th>Gambar</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="daftar-produk"></tbody>
+    </table>
+</div>
+
+<script>
+    const PASSWORD_ADMIN = "admin123"; // Ganti password di sini
+
+    function login() {
+        const input = document.getElementById("password").value;
+        if (input === PASSWORD_ADMIN) {
+            localStorage.setItem("admin_login", "true");
+            tampilkanAdmin();
+        } else {
+            document.getElementById("login-error").innerText = "Password salah!";
+        }
+    }
+
+    function tampilkanAdmin() {
+        document.getElementById("login-section").style.display = "none";
+        document.getElementById("admin-section").style.display = "block";
+        tampilkanProduk();
+    }
+
+    // Auto login jika sudah pernah login
+    if (localStorage.getItem("admin_login") === "true") {
+        tampilkanAdmin();
+    }
+
+    // ================= FUNGSI ADMIN =================
+    let produk = JSON.parse(localStorage.getItem('produk')) || [];
+
+    function simpanData() {
+        localStorage.setItem('produk', JSON.stringify(produk));
+        tampilkanProduk();
+    }
+
+    function tampilkanProduk() {
+        const tbody = document.getElementById('daftar-produk');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        produk.forEach((item, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" value="${item.nama}" onchange="editProduk(${i}, 'nama', this.value)"></td>
+                <td><input type="number" value="${item.harga}" onchange="editProduk(${i}, 'harga', this.value)"></td>
+                <td>
+                    <img src="${item.gambar}" alt="Gambar"><br>
+                    <input type="file" accept="image/*" onchange="gantiGambar(event, ${i})">
+                </td>
+                <td><button class="btn hapus" onclick="hapusProduk(${i})">Hapus</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function tambahProduk(nama, harga, gambarBase64) {
+        produk.push({ nama, harga: parseInt(harga), gambar: gambarBase64 });
+        simpanData();
+    }
+
+    function hapusProduk(index) {
+        if (confirm("Yakin ingin menghapus produk ini?")) {
+            produk.splice(index, 1);
+            simpanData();
+        }
+    }
+
+    function editProduk(index, field, value) {
+        produk[index][field] = field === 'harga' ? parseInt(value) : value;
+        simpanData();
+    }
+
+    function gantiGambar(event, index) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            produk[index].gambar = e.target.result;
+            simpanData();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    document.getElementById('form-produk')?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const nama = document.getElementById('nama').value;
+        const harga = document.getElementById('harga').value;
+        const file = document.getElementById('gambar').files[0];
+
+        if (!file) return alert('Pilih gambar terlebih dahulu.');
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const gambarBase64 = e.target.result;
+            tambahProduk(nama, harga, gambarBase64);
+            document.getElementById('form-produk').reset();
+        };
+        reader.readAsDataURL(file);
+    });
+</script>
+
+</body>
+</html>
