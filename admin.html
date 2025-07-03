@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - iam-food</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f7f7f7; }
+        h1, h2 { color: #333; }
+        .hidden { display: none; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        input[type="file"] { padding: 3px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #f2f2f2; }
+        img { max-width: 80px; border-radius: 4px; margin-top: 5px; }
+        .btn { background: #007bff; color: white; border: none; cursor: pointer; }
+        .btn-danger { background: #dc3545; }
+        .btn-success { background: #28a745; }
+        .btn-logout { background: #6c757d; float: right; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- 🔐 Login Form -->
+    <div id="login-section">
+        <h1>Login Admin</h1>
+        <input type="password" id="password" placeholder="Masukkan Password Admin">
+        <button class="btn btn-success" onclick="login()">Login</button>
+        <p id="login-error" class="error"></p>
+    </div>
+
+    <!-- 🛠️ Admin Panel -->
+    <div id="admin-section" class="hidden">
+        <h1>Admin Panel <button class="btn btn-logout" onclick="logout()">Logout</button></h1>
+
+        <h2>Tambah Produk</h2>
+        <form id="form-produk">
+            <input type="text" id="nama" placeholder="Nama Produk" required>
+            <input type="number" id="harga" placeholder="Harga Produk (Rp)" required>
+            <input type="file" id="gambar" accept="image/*" required>
+            <button type="submit" class="btn btn-success">Tambah Produk</button>
+        </form>
+
+        <h2>Daftar Produk</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Harga</th>
+                    <th>Gambar</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="daftar-produk"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    const PASSWORD_ADMIN = "admin123"; // Ganti sesuai keinginan
+
+    let produk = JSON.parse(localStorage.getItem('produk')) || [];
+
+    // 🏁 Login
+    if (localStorage.getItem("admin_login") === "true") {
+        showAdmin();
+    }
+
+    function login() {
+        const input = document.getElementById("password").value;
+        if (input === PASSWORD_ADMIN) {
+            localStorage.setItem("admin_login", "true");
+            showAdmin();
+        } else {
+            document.getElementById("login-error").innerText = "❌ Password salah!";
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("admin_login");
+        location.reload();
+    }
+
+    function showAdmin() {
+        document.getElementById("login-section").style.display = "none";
+        document.getElementById("admin-section").style.display = "block";
+        tampilkanProduk();
+    }
+
+    // 📦 Tampilkan Produk
+    function tampilkanProduk() {
+        const tbody = document.getElementById('daftar-produk');
+        tbody.innerHTML = '';
+        if (produk.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='4'>Belum ada produk</td></tr>";
+            return;
+        }
+        produk.forEach((item, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" value="${item.nama}" onchange="editProduk(${i}, 'nama', this.value)"></td>
+                <td><input type="number" value="${item.harga}" onchange="editProduk(${i}, 'harga', this.value)"></td>
+                <td>
+                    <img src="${item.gambar}" alt="Gambar">
+                    <input type="file" accept="image/*" onchange="gantiGambar(event, ${i})">
+                </td>
+                <td><button class="btn btn-danger" onclick="hapusProduk(${i})">Hapus</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function simpanData() {
+        localStorage.setItem('produk', JSON.stringify(produk));
+        tampilkanProduk();
+    }
+
+    function tambahProduk(nama, harga, gambarBase64) {
+        produk.push({ nama, harga: parseInt(harga), gambar: gambarBase64 });
+        simpanData();
+    }
+
+    function hapusProduk(index) {
+        if (confirm("Hapus produk ini?")) {
+            produk.splice(index, 1);
+            simpanData();
+        }
+    }
+
+    function editProduk(index, field, value) {
+        produk[index][field] = field === 'harga' ? parseInt(value) : value;
+        simpanData();
+    }
+
+    function gantiGambar(event, index) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            produk[index].gambar = e.target.result;
+            simpanData();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    document.getElementById('form-produk').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const nama = document.getElementById('nama').value.trim();
+        const harga = document.getElementById('harga').value.trim();
+        const file = document.getElementById('gambar').files[0];
+
+        if (!nama || !harga || !file) {
+            alert("⚠️ Semua field harus diisi!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            tambahProduk(nama, harga, e.target.result);
+            document.getElementById('form-produk').reset();
+        };
+        reader.readAsDataURL(file);
+    });
+</script>
+
+</body>
+</html>

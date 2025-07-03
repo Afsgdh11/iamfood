@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>iam-food - Toko Online</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
+        header { background-color: #28a745; color: white; padding: 20px; text-align: center; }
+        .produk-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 15px; text-align: center; }
+        .card img { max-width: 100%; border-radius: 6px; margin-bottom: 10px; }
+        .card h3 { margin: 10px 0; }
+        .card p { color: #555; margin: 5px 0; }
+        .btn { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        #keranjang { margin-top: 40px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #keranjang h2 { margin-top: 0; }
+        .hapus-btn { background-color: #dc3545; margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🍓 iam-food - Toko Overnight Oat</h1>
+</header>
+
+<div class="produk-container" id="produk-container">
+    <!-- Produk akan dimuat di sini -->
+</div>
+
+<div id="keranjang">
+    <h2>🛒 Keranjang Belanja</h2>
+    <ul id="daftar-keranjang"></ul>
+    <p><strong>Total:</strong> Rp <span id="total">0</span></p>
+    <a id="checkout-wa" href="#" target="_blank">
+        <button class="btn">Checkout via WhatsApp</button>
+    </a>
+</div>
+
+<script>
+    let keranjang = [];
+    let total = 0;
+
+    function tambahKeranjang(nama, harga) {
+        keranjang.push({ nama, harga });
+        updateKeranjang();
+    }
+
+    function hapusItem(index) {
+        keranjang.splice(index, 1);
+        updateKeranjang();
+    }
+
+    function updateKeranjang() {
+        const daftar = document.getElementById('daftar-keranjang');
+        daftar.innerHTML = '';
+        total = keranjang.reduce((acc, item) => acc + item.harga, 0);
+        keranjang.forEach((item, i) => {
+            const li = document.createElement('li');
+            li.innerHTML = `${item.nama} - Rp ${item.harga.toLocaleString()} 
+                <button class="btn hapus-btn" onclick="hapusItem(${i})">❌</button>`;
+            daftar.appendChild(li);
+        });
+        document.getElementById('total').innerText = total.toLocaleString();
+
+        // Buat link WhatsApp
+        let pesan = "Halo, saya ingin memesan:\n";
+        keranjang.forEach(item => {
+            pesan += `- ${item.nama} (Rp ${item.harga.toLocaleString()})\n`;
+        });
+        pesan += `Total: Rp ${total.toLocaleString()}`;
+        const noWA = "6281234567890"; // Ganti dengan nomor WA kamu
+        document.getElementById('checkout-wa').href = `https://wa.me/${noWA}?text=${encodeURIComponent(pesan)}`;
+    }
+
+    function tampilkanProduk() {
+        const container = document.getElementById('produk-container');
+        container.innerHTML = '';
+
+        const produk = JSON.parse(localStorage.getItem('produk')) || [];
+
+        if (produk.length === 0) {
+            container.innerHTML = "<p>Belum ada produk. Tambahkan produk dari halaman admin.</p>";
+            return;
+        }
+
+        produk.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <img src="${item.gambar}" alt="${item.nama}">
+                <h3>${item.nama}</h3>
+                <p>Rp ${item.harga.toLocaleString()}</p>
+                <button class="btn" onclick="tambahKeranjang('${item.nama}', ${item.harga})">Tambah ke Keranjang</button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    tampilkanProduk();
+</script>
+
+</body>
+</html>
